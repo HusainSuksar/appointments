@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+      color: #2c3e50;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #cce0ff;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+    }
+
+    select:hover {
+      border-color: #0984e3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    thead tr {
+      background: #0984e3;
+      color: #fff;
+    }
+
+    th,
+    td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid #e1e8f0;
+    }
+
+    tbody tr:hover {
+      background: #f1f6fc;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #cce0ff;
+      resize: vertical;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      background: #0984e3;
+      color: white;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #74b9ff;
+    }
+
+    .checked {
+      background: #00b894 !important;
+      color: white;
+      cursor: default;
+    }
+
+    a {
+      color: #0984e3;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .patient-row {
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+      th,
+      td {
+        font-size: 12px;
+        padding: 8px;
+      }
+
+      select {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Doctor Dashboard</h2>
+
+    <label for="specialty">Select Your Specialty:</label>
+    <select id="specialty" onchange="loadPatients()">
+      <option value="">-- Select Specialty --</option>
+    </select>
+
+    <table id="patientsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>ID</th>
+          <th>Phone</th>
+          <th>Slot</th>
+          <th>Reports</th>
+          <th>Notes</th>
+          <th>Prescription</th>
+          <th>Action</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    function initDashboard() {
+      google.script.run.withSuccessHandler(specs => {
+        const sel = document.getElementById('specialty');
+        specs.forEach(s => sel.appendChild(new Option(s, s)));
+      }).getAllSpecialties();
+    }
+
+    function loadPatients() {
+      const sp = document.getElementById("specialty").value;
+      console.log("Fetching patients for:", sp);
+
+      google.script.run
+        .withSuccessHandler(patients => {
+          console.log("Patients received:", patients);
+          const tbody = document.getElementById("patientsTable").querySelector("tbody");
+          tbody.innerHTML = "";
+
+          if (!patients || patients.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9">No patients found for this specialty.</td></tr>';
+            return;
+          }
+
+          patients.forEach(p => {
+            const tr = document.createElement("tr");
+            tr.classList.add("patient-row");
+            tr.innerHTML = `
+              <td>${p.name || ""}</td>
+              <td>${p.idNumber || ""}</td>
+              <td>${p.phone || ""}</td>
+              <td>${p.slotLabel || ""}</td>
+              <td>${p.fileUrl ? `<a href="${p.fileUrl}" target="_blank">View</a>` : ""}</td>
+              <td><textarea data-id="${p.idNumber}" data-field="notes">${p.notes || ""}</textarea></td>
+              <td><textarea data-id="${p.idNumber}" data-field="Prescription">${p.Prescription || ""}</textarea></td>
+              <td>
+                <button onclick="checkAndSave('${p.idNumber}', this)" ${p.Status === 'Checked' ? 'class="checked" disabled' : ''}>Check</button>
+              </td>
+              <td>${p.Status || 'Pending'}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        })
+        .withFailureHandler(err => {
+          console.error("❌ Error:", err);
+          alert("Error fetching patients: " + err.message);
+        })
+        .getPatientsBySpecialty(sp);
+    }
+
+    function checkAndSave(idNumber, btn) {
+      btn.disabled = true;
+      const notes = document.querySelector(`textarea[data-id='${idNumber}'][data-field='notes']`).value;
+      const prescription = document.querySelector(`textarea[data-id='${idNumber}'][data-field='Prescription']`).value;
+
+      // Save Notes
+      google.script.run.withSuccessHandler(res => {
+        if (!res.success) {
+          alert("❌ Failed to save notes: " + (res.message || "error"));
+        }
+      }).savePatientNotes(idNumber, notes);
+
+      // Save Prescription
+      google.script.run.withSuccessHandler(res => {
+        if (!res.success) {
+          alert("❌ Failed to save prescription: " + (res.message || "error"));
+        }
+      }).savePatientPrescription(idNumber, prescription);
+
+      // Mark as Checked
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          btn.textContent = "Checked";
+          btn.classList.add("checked");
+        } else {
+          alert("❌ Failed: " + (res.message || "error"));
+          btn.disabled = false;
+        }
+      }).markPatientChecked(idNumber);
+    }
+
+    window.onload = initDashboard;
+  </script>
+</body>
+
+</html>
