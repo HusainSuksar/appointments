@@ -320,8 +320,17 @@
 
       <div id="msg"></div>
       <button id="submitBtn">Confirm Booking</button>
-    </div>
+<div id="bookingSpinner" style="display:none; text-align:center; margin-top:15px;">
+  <div class="inline-spinner"></div>
+  <p style="margin-top:8px; font-size:15px; color:#0984e3;">Booking your appointment...</p>
+</div><!-- Modal Popup -->
+<div id="modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999;">
+  <div style="background:#fff; border-radius:16px; padding:40px 30px; max-width:350px; margin:120px auto; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.15);">
+    <h2 style="color:#00b894; margin-bottom:15px;">🎉 Appointment Booked!</h2>
+    <p id="modalSlotLabel" style="font-size:17px; margin-bottom:22px;"></p>
+    <button id="closeModalBtn" style="padding:10px 32px; border:none; background:#0984e3; color:#fff; font-size:16px; border-radius:10px; cursor:pointer;">OK</button>
   </div>
+</div>
 
   <script>
     let currentPatient = null;
@@ -392,45 +401,60 @@
       }
 
       document.getElementById('submitBtn').addEventListener('click', async () => {
-        if (!currentPatient) { alert("Fetch ID first"); return; }
+    if (!currentPatient) { alert("Fetch ID first"); return; }
 
-        const sp = document.getElementById('specialty').value;
-        const slotVal = document.getElementById('slot').value;
-        if (!sp || !slotVal) { alert("Select specialty and slot"); return; }
+    const sp = document.getElementById('specialty').value;
+    const slotVal = document.getElementById('slot').value;
+    if (!sp || !slotVal) { alert("Select specialty and slot"); return; }
 
-        const slotObj = JSON.parse(slotVal);
-        const payload = {
-          idNumber: currentPatient.idNumber,
-          name: currentPatient.name,
-          phone: currentPatient.phone,
-          age: currentPatient.age,
-          phase: currentPatient.phase,
-          specialty: sp,
-          slotId: slotObj.slotId,
-          rowIndex: slotObj.rowIndex
-        };
+    const slotObj = JSON.parse(slotVal);
+    const payload = {
+      idNumber: currentPatient.idNumber,
+      name: currentPatient.name,
+      phone: currentPatient.phone,
+      age: currentPatient.age,
+      phase: currentPatient.phase,
+      specialty: sp,
+      slotId: slotObj.slotId,
+      rowIndex: slotObj.rowIndex
+    };
 
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput.files.length > 0) {
-          const f = fileInput.files[0];
-          const base64 = await readFileAsBase64(f);
-          payload.file = { name: f.name, mimeType: f.type || 'application/octet-stream', base64 };
-        }
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput.files.length > 0) {
+      const f = fileInput.files[0];
+      const base64 = await readFileAsBase64(f);
+      payload.file = { name: f.name, mimeType: f.type || 'application/octet-stream', base64 };
+    }
 
-        google.script.run.withSuccessHandler(res => {
-          if (res && res.success) { alert("Booked: " + res.slotLabel); }
-          else { alert("Failed: " + (res.message || 'error')); }
-        }).bookSlot(payload);
-      });
+    // Show spinner and disable button
+    document.getElementById('bookingSpinner').style.display = 'block';
+    document.getElementById('submitBtn').disabled = true;
 
-      function readFileAsBase64(file) {
-        return new Promise((res, rej) => {
-          const reader = new FileReader();
-          reader.onload = e => res(e.target.result.split(',')[1]);
-          reader.onerror = rej;
-          reader.readAsDataURL(file);
-        });
-      }
+    google.script.run.withSuccessHandler(res => {
+    document.getElementById('bookingSpinner').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+    if (res && res.success) {
+      // Show modal popup
+      document.getElementById('modalSlotLabel').textContent = "Slot: " + res.slotLabel;
+      document.getElementById('modal').style.display = 'block';
+      document.getElementById('closeModalBtn').onclick = function() {
+        document.getElementById('modal').style.display = 'none';
+        window.location.reload();
+      };
+    } else {
+      alert("Failed: " + (res.message || 'error'));
+    }
+  }).bookSlot(payload);
+});
+
+  function readFileAsBase64(file) {
+    return new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result.split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+  }
       
   </script>
 </body>
