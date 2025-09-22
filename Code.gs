@@ -95,19 +95,25 @@ function formatDateHuman(dateStr) {
 
 // Book slot
 function bookSlot(payload) {
+  // Acquire the global script lock (wait max 20 seconds)
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
+
   try {
+    // Always fetch the latest data after acquiring the lock
     const ss = SpreadsheetApp.getActive();
     const slotsSh = ss.getSheetByName(SLOTS_SHEET_NAME);
     const bookingsSh = ss.getSheetByName(BOOKINGS_SHEET_NAME);
     const rowIndex = Number(payload.rowIndex);
     if (!rowIndex || rowIndex < 2) throw new Error('Invalid slot row.');
 
+    // Re-read the slot data after acquiring the lock
     const row = slotsSh.getRange(rowIndex, 1, 1, 8).getValues()[0];
     const slotId = row[0];
     const capacity = Number(row[4]) || 0;
     let booked = Number(row[5]) || 0;
+
+    // Double-check slot identity and availability
     if (slotId !== payload.slotId) {
       throw new Error('Slot mismatch. Refresh and try again.');
     }
@@ -115,17 +121,15 @@ function bookSlot(payload) {
       return { success: false, message: 'Slot already full.' };
     }
 
-    // Prevent duplicate booking by same ID
     // Prevent duplicate booking by same ID for same specialty
-const existing = bookingsSh.getDataRange().getValues().slice(1).find(r => {
-  return String(r[1]) == String(payload.idNumber) && String(r[4]) == String(payload.specialty);
-});
-if (existing) {
-  return { success: false, message: 'You already booked a slot for this specialty.' };
-}
+    const existing = bookingsSh.getDataRange().getValues().slice(1).find(r => {
+      return String(r[1]) == String(payload.idNumber) && String(r[4]) == String(payload.specialty);
+    });
+    if (existing) {
+      return { success: false, message: 'You already booked a slot for this specialty.' };
+    }
 
-
-    // Handle file upload
+    // Handle file upload if present
     let fileUrl = '', fileId = '';
     if (payload.file && payload.file.base64) {
       try {
@@ -145,17 +149,21 @@ if (existing) {
       }
     }
 
-    // Increment booked
+    // Increment booked count and update slot sheet
     booked++;
     slotsSh.getRange(rowIndex, 6).setValue(booked);
 
-    // Add booking
+    // Add new booking to the bookings sheet
     const stamp = new Date();
     const slotLabel = `${formatDateHuman(row[2])} | ${row[3]}`;
-    bookingsSh.appendRow([stamp, payload.idNumber, payload.phone, payload.name || '', payload.specialty, slotId, slotLabel, fileUrl, fileId, payload.notes || '']);
+    bookingsSh.appendRow([
+      stamp, payload.idNumber, payload.phone, payload.name || '',
+      payload.specialty, slotId, slotLabel, fileUrl, fileId, payload.notes || ''
+    ]);
 
     return { success: true, message: 'Booked', slotLabel, fileUrl };
   } finally {
+    // Always release the lock
     lock.releaseLock();
   }
 }
