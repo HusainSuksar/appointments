@@ -1,19 +1,19 @@
-const cors = require('cors')({ origin: true });
-const db = require('../init');
+const cors = require("micro-cors")();
+const db = require("../init");
 
-module.exports = async (req, res) => {
-  cors(req, res, async () => {
-    try {
-      const { id } = req.query;
-      if (!id) return res.status(400).json({ error: "ID is required" });
+module.exports = cors(async (req, res) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ error: "ID is required" });
 
-      const doc = await db.collection("patients").doc(id).get();
-      if (!doc.exists) return res.json(null);
+    const docRef = db.collection("patients").doc(id);
+    const docSnap = await docRef.get();
 
-      res.json(doc.data());
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-};
+    if (!docSnap.exists) return res.status(404).json({ error: "Patient not found" });
+
+    res.status(200).json(docSnap.data());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
