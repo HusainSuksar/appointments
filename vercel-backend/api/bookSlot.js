@@ -1,21 +1,24 @@
-const db = require("../init");
+const cors = require('cors')({ origin: true });
+const db = require('../init');
 
 module.exports = async (req, res) => {
-  try {
-    const payload = req.body;
-    if (!payload || !payload.idNumber) return res.status(400).json({ success: false });
+  cors(req, res, async () => {
+    try {
+      const payload = req.body;
+      if (!payload || !payload.idNumber) return res.status(400).json({ success: false });
 
-    const patientRef = db.collection("patients").doc(payload.idNumber);
-    await patientRef.update({
-      bookedSlot: payload.slotId,
-      bookedSpecialty: payload.specialty,
-      Status: "Checked",
-      file: payload.file || null,
-    });
+      const patientRef = db.collection("patients").doc(payload.idNumber);
+      await patientRef.update({
+        bookedSlot: payload.slotId,
+        bookedSpecialty: payload.specialty,
+        Status: "Checked",
+        file: payload.file || null,
+      });
 
-    res.json({ success: true, slotLabel: payload.slotLabel || payload.slotId });
-  } catch (err) {
-    console.error(err);
-    res.json({ success: false, message: err.message });
-  }
+      res.json({ success: true, slotLabel: payload.slotLabel || payload.slotId });
+    } catch (err) {
+      console.error(err);
+      res.json({ success: false, message: err.message });
+    }
+  });
 };
