@@ -1,0 +1,8 @@
+{
+  "name": "vercel-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^11.0.0"
+  }
+}

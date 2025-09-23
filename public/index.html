@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sehhat Appointment System</title>
+<style>
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg,#e8f4f8 0%,#f0f8ff 100%);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  color:#2c3e50;
+}
+.container {
+  background:white;
+  padding:40px;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+  width:100%;
+  max-width:500px;
+  text-align:center;
+}
+h3 { margin-bottom:30px; font-size:28px; font-weight:600; color:#34495e;}
+.form-group { margin-bottom:20px; text-align:left;}
+label { display:block; margin-bottom:8px; font-weight:500; color:#5a6c7d;}
+input[type="text"], select, input[type="file"] {
+  width:100%; padding:12px 16px; border:2px solid #e1ecf4; border-radius:8px;
+  font-size:16px; background:#fafbfc; transition: all 0.3s ease;
+}
+input[type="text"]:focus, select:focus {
+  outline:none; border-color:#74b9ff; background:white;
+  box-shadow:0 0 0 3px rgba(116,185,255,0.1);
+}
+.fetch-section { display:flex; gap:10px; align-items:flex-end; }
+.fetch-section input { flex:1; }
+button {
+  padding:12px 24px; border:none; border-radius:8px; font-size:16px; font-weight:500;
+  cursor:pointer; background:linear-gradient(135deg,#74b9ff 0%,#0984e3 100%);
+  color:white; transition:0.3s;
+}
+button:hover { transform:translateY(-2px); box-shadow:0 8px 25px rgba(116,185,255,0.3);}
+#submitBtn { width:100%; padding:14px; margin-top:20px; font-size:18px; background:linear-gradient(135deg,#00b894 0%,#00a085 100%);}
+#patientDetails { display:none; margin-top:30px; padding:25px; background:#f8fbff; border-radius:12px; border:1px solid #e1ecf4;}
+.patient-info { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:25px; text-align:left;}
+.patient-info p { background:white; padding:12px 16px; border-radius:8px; border:1px solid #e1ecf4; margin:0;}
+.patient-info span { font-weight:600; color:#2d3748;}
+@media(max-width:600px){.container{padding:30px 20px}.patient-info{grid-template-columns:1fr}.fetch-section{flex-direction:column; gap:15px;}}
+
+.inline-spinner {display:inline-block;width:20px;height:20px;border:3px solid #e1ecf4;border-top:3px solid #00b894;border-radius:50%;position:absolute;right:10px;top:50%;transform:translateY(-50%);animation:spin 1s linear infinite;}
+@keyframes spin {0%{transform:translateY(-50%) rotate(0deg);}100%{transform:translateY(-50%) rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h3>Book Appointment</h3>
+
+<div class="form-group">
+<label for="idNumber">Enter ID Number:</label>
+<div class="fetch-section">
+<input id="idNumber" type="text" placeholder="Enter patient ID" />
+<button onclick="fetchPatient()">Fetch</button>
+</div>
+<div id="loader" style="display:none; text-align:center; margin-top:15px;">Fetching patient...</div>
+</div>
+
+<div id="patientDetails">
+<div class="patient-info">
+<p>Name: <span id="name"></span></p>
+<p>Phone: <span id="phone"></span></p>
+<p>Age: <span id="age"></span></p>
+<p>Phase: <span id="phase"></span></p>
+</div>
+
+<div class="form-group">
+<label for="specialty">Specialty:</label>
+<select id="specialty"><option value="">-- Select --</option></select>
+</div>
+
+<div class="form-group">
+<label for="slot">Choose Time Slot:</label>
+<select id="slot"><option value="">Select specialty first</option></select>
+</div>
+
+<div class="form-group">
+<label for="fileInput">Upload reports (optional):</label>
+<input id="fileInput" type="file" />
+</div>
+
+<button id="submitBtn">Confirm Booking</button>
+</div>
+</div>
+
+<script>
+const API_BASE = "https://vercel-backend-kiqxyit2d-husains-projects-3dce9a78.vercel.app/api";
+ // Replace with your Vercel URL
+let currentPatient = null;
+
+// Fetch patient by ID
+async function fetchPatient() {
+  const id = document.getElementById("idNumber").value.trim();
+  if(!id) return alert("Enter ID");
+  document.getElementById("loader").style.display = "block";
+
+  try {
+    const res = await fetch(`${API_BASE}/getPatientById?id=${id}`);
+    const patient = await res.json();
+    document.getElementById("loader").style.display = "none";
+
+    if(!patient) return alert("ID not found");
+    currentPatient = patient;
+
+    document.getElementById("name").textContent = patient.name;
+    document.getElementById("phone").textContent = patient.phone;
+    document.getElementById("age").textContent = patient.age;
+    document.getElementById("phase").textContent = patient.phase;
+
+    const sel = document.getElementById("specialty");
+    sel.innerHTML = '<option value="">-- Select --</option>';
+    patient.specialties.forEach(s => sel.appendChild(new Option(s, s)));
+    sel.onchange = loadSlots;
+
+    document.getElementById("patientDetails").style.display = "block";
+
+  } catch(err) {
+    document.getElementById("loader").style.display = "none";
+    alert(err.message);
+  }
+}
+
+// Load slots for selected specialty
+async function loadSlots() {
+  const sp = document.getElementById("specialty").value;
+  const slotSel = document.getElementById("slot");
+  slotSel.innerHTML = "<option>Loading...</option>";
+
+  try {
+    const res = await fetch(`${API_BASE}/getSlotsBySpecialty?specialty=${sp}`);
+    const slots = await res.json();
+    slotSel.innerHTML = "";
+
+    if(slots.length){
+      slots.forEach(s => slotSel.appendChild(new Option(s.label, s.slotId)));
+    } else {
+      slotSel.appendChild(new Option("No slots available",""));
+    }
+
+  } catch(err){
+    alert(err.message);
+  }
+}
+
+// Book appointment
+async function bookAppointment() {
+  if(!currentPatient) return alert("Fetch patient first");
+  const slotId = document.getElementById("slot").value;
+  const specialty = document.getElementById("specialty").value;
+  if(!slotId || !specialty) return alert("Select specialty and slot");
+
+  const file = document.getElementById("fileInput").files[0];
+  const formData = new FormData();
+  formData.append("idNumber", currentPatient.idNumber);
+  formData.append("specialty", specialty);
+  formData.append("slotId", slotId);
+  if(file) formData.append("file", file);
+
+  try {
+    const res = await fetch(`${API_BASE}/bookSlot`, {
+      method: "POST",
+      body: formData
+    });
+    const result = await res.json();
+    if(result.success){
+      alert("Appointment booked successfully!");
+      location.reload();
+    } else {
+      alert(result.message || "Booking failed");
+    }
+  } catch(err){
+    alert(err.message);
+  }
+}
+
+document.getElementById("submitBtn").addEventListener("click", bookAppointment);
+</script>
+
+</body>
+</html>
