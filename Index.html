@@ -1,263 +1,15 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-  <base target="_top">
+  <meta charset="UTF-8">
+  <title>Book Appointment</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #e8f4f8 0%, #f0f8ff 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      color: #2c3e50;
-    }
-
-    .container {
-      background: white;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 500px;
-      text-align: center;
-    }
-
-    h3 {
-      color: #34495e;
-      margin-bottom: 30px;
-      font-size: 28px;
-      font-weight: 600;
-      text-align: center;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 500;
-      color: #5a6c7d;
-      font-size: 14px;
-    }
-
-    input[type="text"],
-    select,
-    input[type="file"] {
-      width: 100%;
-      padding: 12px 16px;
-      border: 2px solid #e1ecf4;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: all 0.3s ease;
-      background: #fafbfc;
-    }
-
-    input[type="text"]:focus,
-    select:focus {
-      outline: none;
-      border-color: #74b9ff;
-      background: white;
-      box-shadow: 0 0 0 3px rgba(116, 185, 255, 0.1);
-    }
-
-    .fetch-section {
-      display: flex;
-      gap: 10px;
-      align-items: flex-end;
-    }
-
-    .fetch-section input {
-      flex: 1;
-    }
-
-    button {
-      background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      min-width: 100px;
-    }
-
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(116, 185, 255, 0.3);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
-
-    #submitBtn {
-      width: 100%;
-      padding: 14px;
-      margin-top: 20px;
-      background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
-      font-size: 18px;
-    }
-
-    #submitBtn:hover {
-      box-shadow: 0 8px 25px rgba(0, 184, 148, 0.3);
-    }
-
-    #patientDetails {
-      margin-top: 30px;
-      padding: 25px;
-      background: #f8fbff;
-      border-radius: 12px;
-      border: 1px solid #e1ecf4;
-    }
-
-    .patient-info {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-bottom: 25px;
-      text-align: left;
-    }
-
-    .patient-info p {
-      background: white;
-      padding: 12px 16px;
-      border-radius: 8px;
-      border: 1px solid #e1ecf4;
-      margin: 0;
-    }
-
-    .patient-info span {
-      font-weight: 600;
-      color: #2d3748;
-    }
-
-    #msg {
-      margin: 15px 0;
-      padding: 10px;
-      border-radius: 6px;
-      text-align: center;
-    }
-
-    .loading {
-      color: #74b9ff;
-    }
-
-    .error {
-      background: #ffe6e6;
-      color: #e74c3c;
-      border: 1px solid #f8d7da;
-    }
-
-    .success {
-      background: #e6f7f1;
-      color: #00b894;
-      border: 1px solid #d4edda;
-    }
-
-    @media (max-width: 600px) {
-      .container {
-        padding: 30px 20px;
-      }
-
-      .patient-info {
-        grid-template-columns: 1fr;
-      }
-
-      .fetch-section {
-        flex-direction: column;
-        gap: 15px;
-      }
-    }
-
-    .spinner {
-      display: inline-block;
-      position: relative;
-      width: 50px;
-      height: 50px;
-    }
-
-    .spinner div {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background: linear-gradient(45deg, #00b894, #74b9ff);
-      border-radius: 50%;
-      animation: spinnerAnim 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-    }
-
-    .spinner div:nth-child(1) {
-      top: 0;
-      left: 0;
-      animation-delay: 0s;
-    }
-
-    .spinner div:nth-child(2) {
-      top: 0;
-      right: 0;
-      animation-delay: 0.3s;
-    }
-
-    .spinner div:nth-child(3) {
-      bottom: 0;
-      right: 0;
-      animation-delay: 0.6s;
-    }
-
-    .spinner div:nth-child(4) {
-      bottom: 0;
-      left: 0;
-      animation-delay: 0.9s;
-    }
-
-    @keyframes spinnerAnim {
-      0%,
-      100% {
-        transform: scale(0);
-      }
-      50% {
-        transform: scale(1);
-      }
-    }
-
-    .inline-spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid #e1ecf4;
-      border-top: 3px solid #00b894;
-      border-radius: 50%;
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% {
-        transform: translateY(-50%) rotate(0deg);
-      }
-      100% {
-        transform: translateY(-50%) rotate(360deg);
-      }
-    }
+    /* keep your existing styles (unchanged) */
   </style>
 </head>
-
 <body>
   <div class="container">
     <h3>Book Appointment</h3>
@@ -270,14 +22,12 @@
         <button onclick="fetchPatient()">Fetch</button>
       </div>
       <div id="loader" style="display:none; text-align:center; margin-top:15px;">
-        <div class="spinner">
-          <div></div><div></div><div></div><div></div>
-        </div>
+        <div class="spinner"><div></div><div></div><div></div><div></div></div>
         <p style="margin-top:8px; font-size:14px; color:#00b894;">Fetching patient details...</p>
       </div>
     </div>
 
-    <!-- Step 2: Patient details -->
+    <!-- Step 2: Patient details (auto-filled) -->
     <div id="patientDetails" style="display:none;">
       <div class="patient-info">
         <p>Name: <span id="name"></span></p>
@@ -286,7 +36,6 @@
         <p>Phase: <span id="phase"></span></p>
       </div>
 
-      <!-- Specialty -->
       <div class="form-group">
         <label for="specialty">Specialty:</label>
         <select id="specialty">
@@ -295,7 +44,6 @@
         <div id="slotLoader" class="inline-spinner" style="display:none;"></div>
       </div>
 
-      <!-- Slots -->
       <div class="form-group">
         <label for="slot">Choose Time Slot:</label>
         <select id="slot">
@@ -303,7 +51,6 @@
         </select>
       </div>
 
-      <!-- File upload -->
       <div class="form-group">
         <label for="fileInput">Upload reports (optional):</label>
         <input id="fileInput" type="file" />
@@ -319,7 +66,7 @@
     </div>
   </div>
 
-  <!-- Modal -->
+  <!-- Modal Popup -->
   <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999;">
     <div style="background:#fff; border-radius:16px; padding:40px 30px; max-width:350px; margin:120px auto; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.15);">
       <h2 style="color:#00b894; margin-bottom:15px;">🎉 Appointment Booked!</h2>
@@ -328,123 +75,152 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, collection,
+      query, where, getDocs, addDoc, updateDoc
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import {
+      getStorage, ref, uploadBytes, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+
+    // ✅ Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "YOUR_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
     let currentPatient = null;
 
-    function fetchPatient() {
-      const id = document.getElementById('idNumber').value.trim();
+    async function fetchPatient() {
+      const id = document.getElementById("idNumber").value.trim();
       if (!id) { alert("Enter ID"); return; }
 
-      const loader = document.getElementById('loader');
-      loader.style.display = 'block';
+      document.getElementById("loader").style.display = "block";
 
-      google.script.run.withSuccessHandler(p => {
-        loader.style.display = 'none';
-        if (!p) { alert("ID not found"); return; }
+      const docRef = doc(db, "patients", id);
+      const snap = await getDoc(docRef);
+      document.getElementById("loader").style.display = "none";
 
-        currentPatient = p;
-        document.getElementById('name').textContent = p.name;
-        document.getElementById('phone').textContent = p.phone;
-        document.getElementById('age').textContent = p.age;
-        document.getElementById('phase').textContent = p.phase;
+      if (!snap.exists()) {
+        alert("ID not found");
+        return;
+      }
 
-        const sel = document.getElementById('specialty');
-        sel.innerHTML = '<option value="">-- Select --</option>';
-        p.specialties.forEach(s => sel.appendChild(new Option(s, s)));
-        sel.onchange = onSpecialtyChange;
+      currentPatient = snap.data();
+      currentPatient.idNumber = id;
 
-        document.getElementById('patientDetails').style.display = 'block';
-      }).getPatientById(id);
+      document.getElementById("name").textContent = currentPatient.name;
+      document.getElementById("phone").textContent = currentPatient.phone;
+      document.getElementById("age").textContent = currentPatient.age;
+      document.getElementById("phase").textContent = currentPatient.phase;
+
+      const sel = document.getElementById("specialty");
+      sel.innerHTML = '<option value="">-- Select --</option>';
+      (currentPatient.specialties || []).forEach(s =>
+        sel.appendChild(new Option(s, s))
+      );
+      sel.onchange = onSpecialtyChange;
+
+      document.getElementById("patientDetails").style.display = "block";
     }
 
-    function onSpecialtyChange() {
-      const sp = document.getElementById('specialty').value;
-      const slotSel = document.getElementById('slot');
-      const slotLoader = document.getElementById('slotLoader');
+    async function onSpecialtyChange() {
+      const sp = document.getElementById("specialty").value;
+      const slotSel = document.getElementById("slot");
+      const slotLoader = document.getElementById("slotLoader");
 
-      slotSel.innerHTML = '<option>Loading...</option>';
-      slotLoader.style.display = 'inline-block';
+      slotSel.innerHTML = "<option>Loading...</option>";
+      slotLoader.style.display = "inline-block";
 
       if (!sp) {
-        slotSel.innerHTML = '<option>Select specialty first</option>';
-        slotLoader.style.display = 'none';
+        slotSel.innerHTML = "<option>Select specialty first</option>";
+        slotLoader.style.display = "none";
         return;
       }
 
-      google.script.run.withSuccessHandler(slots => {
-        populateSlots(slots);
-        slotLoader.style.display = 'none';
-      }).getSlotsForSpecialty(sp);
-    }
+      const q = query(collection(db, "slots"), where("specialty", "==", sp), where("booked", "==", false));
+      const snap = await getDocs(q);
 
-    function populateSlots(slots) {
-      const slotSel = document.getElementById('slot');
-      slotSel.innerHTML = '';
-      if (!slots || slots.length === 0) {
-        slotSel.appendChild(new Option('No slots available', ''));
+      slotLoader.style.display = "none";
+      slotSel.innerHTML = "";
+
+      if (snap.empty) {
+        slotSel.appendChild(new Option("No slots available", ""));
         return;
       }
-      slotSel.appendChild(new Option('-- Select slot --', ''));
-      slots.forEach(s => {
-        const opt = new Option(s.label, JSON.stringify({ slotId: s.slotId, rowIndex: s.rowIndex, label: s.label }));
-        slotSel.appendChild(opt);
+
+      slotSel.appendChild(new Option("-- Select slot --", ""));
+      snap.forEach(d => {
+        const s = d.data();
+        const val = JSON.stringify({ slotId: d.id, label: s.label });
+        slotSel.appendChild(new Option(s.label, val));
       });
     }
 
-    document.getElementById('submitBtn').addEventListener('click', async () => {
+    document.getElementById("submitBtn").addEventListener("click", async () => {
       if (!currentPatient) { alert("Fetch ID first"); return; }
 
-      const sp = document.getElementById('specialty').value;
-      const slotVal = document.getElementById('slot').value;
+      const sp = document.getElementById("specialty").value;
+      const slotVal = document.getElementById("slot").value;
       if (!sp || !slotVal) { alert("Select specialty and slot"); return; }
 
       const slotObj = JSON.parse(slotVal);
-      const payload = {
-        idNumber: currentPatient.idNumber,
-        name: currentPatient.name,
-        phone: currentPatient.phone,
-        age: currentPatient.age,
-        phase: currentPatient.phase,
-        specialty: sp,
-        slotId: slotObj.slotId,
-        rowIndex: slotObj.rowIndex
-      };
 
-      const fileInput = document.getElementById('fileInput');
+      let fileUrl = "";
+      const fileInput = document.getElementById("fileInput");
       if (fileInput.files.length > 0) {
-        const f = fileInput.files[0];
-        const base64 = await readFileAsBase64(f);
-        payload.file = { name: f.name, mimeType: f.type || 'application/octet-stream', base64 };
+        const file = fileInput.files[0];
+        const storageRef = ref(storage, "reports/" + Date.now() + "_" + file.name);
+        await uploadBytes(storageRef, file);
+        fileUrl = await getDownloadURL(storageRef);
       }
 
-      document.getElementById('bookingSpinner').style.display = 'block';
-      document.getElementById('submitBtn').disabled = true;
+      document.getElementById("bookingSpinner").style.display = "block";
+      document.getElementById("submitBtn").disabled = true;
 
-      google.script.run.withSuccessHandler(res => {
-        document.getElementById('bookingSpinner').style.display = 'none';
-        document.getElementById('submitBtn').disabled = false;
-        if (res && res.success) {
-          document.getElementById('modalSlotLabel').textContent = "Slot: " + res.slotLabel;
-          document.getElementById('modal').style.display = 'block';
-          document.getElementById('closeModalBtn').onclick = function () {
-            document.getElementById('modal').style.display = 'none';
-            window.location.reload();
-          };
-        } else {
-          alert("Failed: " + (res.message || 'error'));
-        }
-      }).bookSlot(payload);
+      try {
+        await addDoc(collection(db, "bookings"), {
+          idNumber: currentPatient.idNumber,
+          name: currentPatient.name,
+          phone: currentPatient.phone,
+          age: currentPatient.age,
+          phase: currentPatient.phase,
+          specialty: sp,
+          slotId: slotObj.slotId,
+          slotLabel: slotObj.label,
+          fileUrl,
+          status: "Pending",
+          createdAt: new Date()
+        });
+
+        // mark slot as booked
+        await updateDoc(doc(db, "slots", slotObj.slotId), { booked: true });
+
+        document.getElementById("bookingSpinner").style.display = "none";
+        document.getElementById("submitBtn").disabled = false;
+
+        document.getElementById("modalSlotLabel").textContent = "Slot: " + slotObj.label;
+        document.getElementById("modal").style.display = "block";
+        document.getElementById("closeModalBtn").onclick = function() {
+          document.getElementById("modal").style.display = "none";
+          window.location.reload();
+        };
+      } catch (err) {
+        alert("Failed: " + err.message);
+        document.getElementById("bookingSpinner").style.display = "none";
+        document.getElementById("submitBtn").disabled = false;
+      }
     });
 
-    function readFileAsBase64(file) {
-      return new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload = e => res(e.target.result.split(',')[1]);
-        reader.onerror = rej;
-        reader.readAsDataURL(file);
-      });
-    }
+    window.fetchPatient = fetchPatient;
   </script>
 </body>
-
 </html>
