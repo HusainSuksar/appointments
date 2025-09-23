@@ -1,8 +1,11 @@
 // ---------- firebaseFunctions.js ----------
 // Firebase setup
 const admin = require("firebase-admin");
+const { v4: uuidv4 } = require("uuid");
+
 admin.initializeApp();
 const db = admin.firestore();
+const storage = admin.storage();
 
 // COLLECTIONS
 const SLOTS = db.collection("slots");
@@ -22,6 +25,31 @@ function formatDateHuman(dateStr) {
     });
   } catch (e) {
     return dateStr;
+  }
+}
+
+// ---------- STORAGE UPLOAD ----------
+async function uploadFile(base64, mimeType, filename) {
+  try {
+    const bucket = storage.bucket(); // default bucket
+    const buffer = Buffer.from(base64, "base64");
+    const uniqueName = `${Date.now()}_${uuidv4()}_${filename}`;
+    const file = bucket.file(uniqueName);
+
+    await file.save(buffer, {
+      metadata: { contentType: mimeType },
+    });
+
+    // Generate signed URL (valid till 2030)
+    const [url] = await file.getSignedUrl({
+      action: "read",
+      expires: "03-01-2030",
+    });
+
+    return { success: true, url, filePath: uniqueName };
+  } catch (err) {
+    console.error("❌ Upload error:", err);
+    return { success: false, message: "Upload failed" };
   }
 }
 
@@ -76,7 +104,7 @@ async function getSlotsForSpecialty(specialty) {
   return out.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-// Book a slot
+// Book a slot (with optional file upload)
 async function bookSlot(payload) {
   const slotRef = SLOTS.doc(payload.slotId);
   const bookingRef = BOOKINGS;
@@ -93,7 +121,7 @@ async function bookSlot(payload) {
       return { success: false, message: "Slot already full." };
     }
 
-    // Prevent duplicate booking for same ID + specialty
+    // Prevent duplicate booking
     const existing = await bookingRef
       .where("idNumber", "==", payload.idNumber)
       .where("specialty", "==", payload.specialty)
@@ -102,6 +130,17 @@ async function bookSlot(payload) {
 
     if (!existing.empty) {
       return { success: false, message: "You already booked a slot for this specialty." };
+    }
+
+    // ✅ File Upload
+    let fileUrl = "";
+    if (payload.file && payload.file.base64) {
+      const uploaded = await uploadFile(
+        payload.file.base64,
+        payload.file.mimeType,
+        payload.file.name
+      );
+      if (uploaded.success) fileUrl = uploaded.url;
     }
 
     // Update booked count
@@ -118,13 +157,13 @@ async function bookSlot(payload) {
       specialty: payload.specialty,
       slotId: payload.slotId,
       slotLabel,
-      fileUrl: payload.fileUrl || "",
+      fileUrl,
       notes: payload.notes || "",
       prescription: "",
       status: "Pending",
     });
 
-    return { success: true, message: "Booked", slotLabel };
+    return { success: true, message: "Booked", slotLabel, fileUrl };
   });
 }
 
