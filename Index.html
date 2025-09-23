@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+
 <head>
   <base target="_top">
   <style>
@@ -226,12 +224,10 @@
     }
 
     @keyframes spinnerAnim {
-
       0%,
       100% {
         transform: scale(0);
       }
-
       50% {
         transform: scale(1);
       }
@@ -255,7 +251,6 @@
       0% {
         transform: translateY(-50%) rotate(0deg);
       }
-
       100% {
         transform: translateY(-50%) rotate(360deg);
       }
@@ -264,7 +259,6 @@
 </head>
 
 <body>
-  <!-- Wrapped content in centered container -->
   <div class="container">
     <h3>Book Appointment</h3>
 
@@ -277,19 +271,14 @@
       </div>
       <div id="loader" style="display:none; text-align:center; margin-top:15px;">
         <div class="spinner">
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
+          <div></div><div></div><div></div><div></div>
         </div>
         <p style="margin-top:8px; font-size:14px; color:#00b894;">Fetching patient details...</p>
       </div>
-
     </div>
 
-    <!-- Step 2: Patient details (auto-filled) -->
+    <!-- Step 2: Patient details -->
     <div id="patientDetails" style="display:none;">
-      <!-- Improved patient info display with grid layout -->
       <div class="patient-info">
         <p>Name: <span id="name"></span></p>
         <p>Phone: <span id="phone"></span></p>
@@ -297,24 +286,24 @@
         <p>Phase: <span id="phase"></span></p>
       </div>
 
-      <!-- Specialty dropdown (only patient specialties) -->
+      <!-- Specialty -->
       <div class="form-group">
         <label for="specialty">Specialty:</label>
         <select id="specialty">
-            <option value="">-- Select --</option>
-          </select>
+          <option value="">-- Select --</option>
+        </select>
         <div id="slotLoader" class="inline-spinner" style="display:none;"></div>
       </div>
 
-      <!-- Time slot dropdown (dynamically loaded) -->
+      <!-- Slots -->
       <div class="form-group">
         <label for="slot">Choose Time Slot:</label>
         <select id="slot">
-            <option value="">Select specialty first</option>
-          </select>
+          <option value="">Select specialty first</option>
+        </select>
       </div>
 
-      <!-- File upload (optional) -->
+      <!-- File upload -->
       <div class="form-group">
         <label for="fileInput">Upload reports (optional):</label>
         <input id="fileInput" type="file" />
@@ -322,142 +311,139 @@
 
       <div id="msg"></div>
       <button id="submitBtn">Confirm Booking</button>
-<div id="bookingSpinner" style="display:none; text-align:center; margin-top:15px;">
-  <div class="inline-spinner"></div>
-  <p style="margin-top:8px; font-size:15px; color:#0984e3;">Booking your appointment...</p>
-</div><!-- Modal Popup -->
-<div id="modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999;">
-  <div style="background:#fff; border-radius:16px; padding:40px 30px; max-width:350px; margin:120px auto; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.15);">
-    <h2 style="color:#00b894; margin-bottom:15px;">🎉 Appointment Booked!</h2>
-    <p id="modalSlotLabel" style="font-size:17px; margin-bottom:22px;"></p>
-    <button id="closeModalBtn" style="padding:10px 32px; border:none; background:#0984e3; color:#fff; font-size:16px; border-radius:10px; cursor:pointer;">OK</button>
+
+      <div id="bookingSpinner" style="display:none; text-align:center; margin-top:15px;">
+        <div class="inline-spinner"></div>
+        <p style="margin-top:8px; font-size:15px; color:#0984e3;">Booking your appointment...</p>
+      </div>
+    </div>
   </div>
-</div>
+
+  <!-- Modal -->
+  <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999;">
+    <div style="background:#fff; border-radius:16px; padding:40px 30px; max-width:350px; margin:120px auto; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.15);">
+      <h2 style="color:#00b894; margin-bottom:15px;">🎉 Appointment Booked!</h2>
+      <p id="modalSlotLabel" style="font-size:17px; margin-bottom:22px;"></p>
+      <button id="closeModalBtn" style="padding:10px 32px; border:none; background:#0984e3; color:#fff; font-size:16px; border-radius:10px; cursor:pointer;">OK</button>
+    </div>
+  </div>
 
   <script>
     let currentPatient = null;
 
-      function fetchPatient() {
-  const id = document.getElementById('idNumber').value.trim();
-  if (!id) { alert("Enter ID"); return; }
+    function fetchPatient() {
+      const id = document.getElementById('idNumber').value.trim();
+      if (!id) { alert("Enter ID"); return; }
 
-  const loader = document.getElementById('loader');
-  loader.style.display = 'block'; // show spinner
+      const loader = document.getElementById('loader');
+      loader.style.display = 'block';
 
-  google.script.run.withSuccessHandler(p => {
-    loader.style.display = 'none'; // hide spinner
+      google.script.run.withSuccessHandler(p => {
+        loader.style.display = 'none';
+        if (!p) { alert("ID not found"); return; }
 
-    if (!p) { alert("ID not found"); return; }
+        currentPatient = p;
+        document.getElementById('name').textContent = p.name;
+        document.getElementById('phone').textContent = p.phone;
+        document.getElementById('age').textContent = p.age;
+        document.getElementById('phase').textContent = p.phase;
 
-    currentPatient = p;
-    // Fill patient details
-    document.getElementById('name').textContent = p.name;
-    document.getElementById('phone').textContent = p.phone;
-    document.getElementById('age').textContent = p.age;
-    document.getElementById('phase').textContent = p.phase;
+        const sel = document.getElementById('specialty');
+        sel.innerHTML = '<option value="">-- Select --</option>';
+        p.specialties.forEach(s => sel.appendChild(new Option(s, s)));
+        sel.onchange = onSpecialtyChange;
 
-    // Populate specialties dropdown
-    const sel = document.getElementById('specialty');
-    sel.innerHTML = '<option value="">-- Select --</option>';
-    p.specialties.forEach(s => sel.appendChild(new Option(s, s)));
-    sel.onchange = onSpecialtyChange;
+        document.getElementById('patientDetails').style.display = 'block';
+      }).getPatientById(id);
+    }
 
-    document.getElementById('patientDetails').style.display = 'block';
-  }).getPatientById(id);
-}
+    function onSpecialtyChange() {
+      const sp = document.getElementById('specialty').value;
+      const slotSel = document.getElementById('slot');
+      const slotLoader = document.getElementById('slotLoader');
 
+      slotSel.innerHTML = '<option>Loading...</option>';
+      slotLoader.style.display = 'inline-block';
 
-      function onSpecialtyChange() {
-  const sp = document.getElementById('specialty').value;
-  const slotSel = document.getElementById('slot');
-  const slotLoader = document.getElementById('slotLoader');
-
-  slotSel.innerHTML = '<option>Loading...</option>';
-  slotLoader.style.display = 'inline-block'; // show inline spinner
-
-  if (!sp) {
-    slotSel.innerHTML = '<option>Select specialty first</option>';
-    slotLoader.style.display = 'none';
-    return;
-  }
-
-  google.script.run.withSuccessHandler(slots => {
-    populateSlots(slots);
-    slotLoader.style.display = 'none'; // hide spinner
-  }).getSlotsForSpecialty(sp);
-}
-
-
-      function populateSlots(slots) {
-        const slotSel = document.getElementById('slot');
-        slotSel.innerHTML = '';
-        if (!slots || slots.length === 0) {
-          slotSel.appendChild(new Option('No slots available', ''));
-          return;
-        }
-        slotSel.appendChild(new Option('-- Select slot --', ''));
-        slots.forEach(s => {
-          const opt = new Option(s.label, JSON.stringify({slotId: s.slotId, rowIndex: s.rowIndex, label: s.label}));
-          slotSel.appendChild(opt);
-        });
+      if (!sp) {
+        slotSel.innerHTML = '<option>Select specialty first</option>';
+        slotLoader.style.display = 'none';
+        return;
       }
 
-      document.getElementById('submitBtn').addEventListener('click', async () => {
-    if (!currentPatient) { alert("Fetch ID first"); return; }
-
-    const sp = document.getElementById('specialty').value;
-    const slotVal = document.getElementById('slot').value;
-    if (!sp || !slotVal) { alert("Select specialty and slot"); return; }
-
-    const slotObj = JSON.parse(slotVal);
-    const payload = {
-      idNumber: currentPatient.idNumber,
-      name: currentPatient.name,
-      phone: currentPatient.phone,
-      age: currentPatient.age,
-      phase: currentPatient.phase,
-      specialty: sp,
-      slotId: slotObj.slotId,
-      rowIndex: slotObj.rowIndex
-    };
-
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput.files.length > 0) {
-      const f = fileInput.files[0];
-      const base64 = await readFileAsBase64(f);
-      payload.file = { name: f.name, mimeType: f.type || 'application/octet-stream', base64 };
+      google.script.run.withSuccessHandler(slots => {
+        populateSlots(slots);
+        slotLoader.style.display = 'none';
+      }).getSlotsForSpecialty(sp);
     }
 
-    // Show spinner and disable button
-    document.getElementById('bookingSpinner').style.display = 'block';
-    document.getElementById('submitBtn').disabled = true;
+    function populateSlots(slots) {
+      const slotSel = document.getElementById('slot');
+      slotSel.innerHTML = '';
+      if (!slots || slots.length === 0) {
+        slotSel.appendChild(new Option('No slots available', ''));
+        return;
+      }
+      slotSel.appendChild(new Option('-- Select slot --', ''));
+      slots.forEach(s => {
+        const opt = new Option(s.label, JSON.stringify({ slotId: s.slotId, rowIndex: s.rowIndex, label: s.label }));
+        slotSel.appendChild(opt);
+      });
+    }
 
-    google.script.run.withSuccessHandler(res => {
-    document.getElementById('bookingSpinner').style.display = 'none';
-    document.getElementById('submitBtn').disabled = false;
-    if (res && res.success) {
-      // Show modal popup
-      document.getElementById('modalSlotLabel').textContent = "Slot: " + res.slotLabel;
-      document.getElementById('modal').style.display = 'block';
-      document.getElementById('closeModalBtn').onclick = function() {
-        document.getElementById('modal').style.display = 'none';
-        window.location.reload();
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      if (!currentPatient) { alert("Fetch ID first"); return; }
+
+      const sp = document.getElementById('specialty').value;
+      const slotVal = document.getElementById('slot').value;
+      if (!sp || !slotVal) { alert("Select specialty and slot"); return; }
+
+      const slotObj = JSON.parse(slotVal);
+      const payload = {
+        idNumber: currentPatient.idNumber,
+        name: currentPatient.name,
+        phone: currentPatient.phone,
+        age: currentPatient.age,
+        phase: currentPatient.phase,
+        specialty: sp,
+        slotId: slotObj.slotId,
+        rowIndex: slotObj.rowIndex
       };
-    } else {
-      alert("Failed: " + (res.message || 'error'));
-    }
-  }).bookSlot(payload);
-});
 
-  function readFileAsBase64(file) {
-    return new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = e => res(e.target.result.split(',')[1]);
-      reader.onerror = rej;
-      reader.readAsDataURL(file);
+      const fileInput = document.getElementById('fileInput');
+      if (fileInput.files.length > 0) {
+        const f = fileInput.files[0];
+        const base64 = await readFileAsBase64(f);
+        payload.file = { name: f.name, mimeType: f.type || 'application/octet-stream', base64 };
+      }
+
+      document.getElementById('bookingSpinner').style.display = 'block';
+      document.getElementById('submitBtn').disabled = true;
+
+      google.script.run.withSuccessHandler(res => {
+        document.getElementById('bookingSpinner').style.display = 'none';
+        document.getElementById('submitBtn').disabled = false;
+        if (res && res.success) {
+          document.getElementById('modalSlotLabel').textContent = "Slot: " + res.slotLabel;
+          document.getElementById('modal').style.display = 'block';
+          document.getElementById('closeModalBtn').onclick = function () {
+            document.getElementById('modal').style.display = 'none';
+            window.location.reload();
+          };
+        } else {
+          alert("Failed: " + (res.message || 'error'));
+        }
+      }).bookSlot(payload);
     });
-  }
-      
+
+    function readFileAsBase64(file) {
+      return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => res(e.target.result.split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+    }
   </script>
 </body>
 
